@@ -1,0 +1,115 @@
+@ngdoc overview
+@name Developer Guide: i18n and l10n
+@description
+
+翻译者：[@greengerong](https://github.com/greengerong)
+
+# AngularJS中的I18n 和 L10n 
+
+**什么是i18n 和 l10n?**
+
+
+i18n是Internationalization(国际化)的缩写，是使开发的产品能很容易适应不同的语言和地区间的变化的过程。l10n则是Localization(本地化)的缩写，是为了使应用软件能够在某一特定语言环境或地区使用而加入本地特殊化部件和翻译后文本的过程。对于应用程序开发者而言，国际化意味着需要从应用程序中抽离所有的文本字符串信息和特殊的地域特性(如时间、货币格式)。而本地化意味着提供翻译后的文本和具有地域特性的格式。
+
+
+**Angular当前对i18n/l10n的支持程度**
+
+
+当前Angular为i18n/l10n提供了{@link
+http://docs.angularjs.org/#!/api/ng.filter:date datetime}, {@link
+http://docs.angularjs.org/#!/api/ng.filter:number number} 以及 {@link
+http://docs.angularjs.org/#!/api/ng.filter:currency currency} 之类的filter。
+
+
+另外Angular也通过{@link
+api/ng.directive:ngPluralize ngPluralize directive} 提供了对多元化地域的支持。
+
+Angular提供的所有本地化组件都会依赖于{@link api/ng.$locale $locale service}的本地化特性设置。
+
+
+对于希望直接跳到示例读者，我们已经有一些wbe页面展示如何利用Angular filters设置多样化的本地化规则，可以猛击{@link
+https://github.com/angular/angular.js/tree/master/i18n/e2e Github} 或者在Angular开发包的i18n/e2ei18n/e2目录下找到。
+
+
+**什么是地域标识?**
+
+
+一个地域标识代表一个特定的地理位置，政治体制，或是文化区域。最常用的地域标识分为两部分：语言编码和国家编码，例如en-US, en-AU, zh-CN，这些都是包含语言编码和国家编码的合法地域标识。因为在地域标识中一个指定国家编码是可选的，例如en, zh, 以及sk也都是合法的。关于地域标识更多资料可从{@link
+http://userguide.icu-project.org/locale ICU }获取。
+
+
+**Angular支持的地域**
+
+
+Angular把数字、日期格式的规则按照特定的地域分离到不同的独立文件，每个文件配置了该地域的特性配置信息。你可以从{@link
+https://github.com/angular/angular.js/tree/master/src/ngLocale 这里}获取当前支持的地域。
+
+
+# 给Angular提供地域规则
+
+
+有两种给Angular提供地域规则的方式:
+
+
+**1. 预绑定(Pre-bundled)规则集**
+
+
+你可以把给Angular提供的特殊地域目标文件通过连接在`angular.js` 或者 `angular.min.js`文件末尾。
+
+例如在*nix系统中，你可以通过以下方式创建一个包含德国本地化规则的angular.js文件:
+
+`cat angular.js i18n/angular-locale_de-de.js > angular_de-de.js`
+
+当我们的应用程序引入了`angular_de-de.js`而不是平常 angular.js的脚本，Angular将会自动配置德国的区域规则信息。
+
+
+**2. 在index.html页面引入locale js**
+
+你也可以将特定的区域配置脚本直接引入到index.html页面。例如你的客户需要德国本地化规则，那么你提供的index_de-de.html如下:
+
+
+<pre>
+<html ng-app>
+ <head>
+….
+   <script src="angular.js"></script>
+   <script src="i18n/angular-locale_de-de.js"></script>
+….
+ </head>
+</html>
+</pre>
+
+**两种方式的对比**
+
+上面所描述的两种方式都需要你准备不同的index。html页面或者js来提供应用程序所需要的区域规则配置。你还需要配置服务器来提供正确的和本地化规则相匹配的文件。
+
+然而，第二种方式(导入locale js到index.html页面)因为需要加载外边脚本文件，所以可能会慢一些。
+
+
+# "坑"
+
+**货币符号的"坑"**
+
+
+Angular的{@link http://docs.angularjs.org/#!/api/ng.filter:currency 货币 filter}允许我们通过{@link api/ng.$locale locale service}使用默认的货币符号，或者自定义货币符号。如果你应用程序只会在一个地域使用，你可以完全依赖当前的默认货币符号。但是如果你期望其他地域的用户使用该应用，那么你需要提供能被当地人们理解的货币符号。
+
+
+例如，你希望通过Angular货币filter `{{ 1000 | currency }}` 显示1000刀的账户余额，并且你的应用程序在en-US区域中使用，那么显示结果将是'$1000.00'。然而，如果用户在其他的区域使用该应用（如，日本），他的浏览器指定的区域将是ja，余额将显示为'¥1000.00',这将会让你的用户感到不爽。
+
+
+在这种情况下，你需要通过{@link http://docs.angularjs.org/#!/api/ng.filter:currency 货币 filter}将默认的货币符号重写成作为参数传进来的货币符号，例如{{ 1000 | currency:"USD$"}}。这样Angular将会忽略任何区域改变总是显示余额为'USD$1000'。
+
+**转换长度的"坑"**
+
+
+需要铭记的是，转换字符串/时间格式后将会很大程度的引起长度改变。例如，`June 3, 1977`转换为西班牙格式为`3 de junio de 1977`。这将会出现一些极端的案例。因为当你需要国际化你的应用程序的时候，你需要引用响应的css和测试确保UI组件不会重叠。
+
+**时区**
+
+需要铭记的是，Angular的时间filter采用的是浏览器设置的时区。所以，同一个应用在设置不同时区的电脑上，将会显示不同的时间信息。最后，不管是JavaScript还是Angular当前都不支持显示开发者指定的特定时区的时间。
+
+
+译者注-额外资源：
+
+1：关于国际化更友好的Angular plugin @link
+http://pascalprecht.github.io/angular-translate/ angular-translate} 
